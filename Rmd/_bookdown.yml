@@ -1,0 +1,8 @@
+rmd_files:
+  - index.Rmd
+  - 01-Validation.Rmd
+  - 02-MiSSE.Rmd
+  - 03-CID.Rmd
+  - 04-EHE.Rmd
+  - 05-Semi_Congruent.Rmd
+  - 06-Sampling_Fraction.Rmd

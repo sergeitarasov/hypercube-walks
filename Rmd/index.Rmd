@@ -1,0 +1,47 @@
+---
+title: "Report for Simulations using HiClaSSE model"
+author: "Sergei Tarasov"
+date: "`r Sys.Date()`"
+always_allow_html: true
+bookdown::gitbook:
+  config:
+    toc:
+      collapse: subsection
+      scroll_highlight: true
+      before: null
+      after: null
+    toolbar:
+      position: fixed
+    edit : null
+    download: null
+    search:
+      engine: lunr # or fuse
+      # options to control/tune search engine behavior (for
+      # fuse.js, refer to https://fusejs.io/api/options.html)
+      options: null
+    fontsettings:
+      theme: white
+      family: sans
+      size: 2
+    sharing:
+      facebook: true
+      github: false
+      twitter: true
+      linkedin: false
+      weibo: false
+      instapaper: false
+      vk: false
+      whatsapp: false
+      all: ['facebook', 'twitter', 'linkedin', 'weibo', 'instapaper']
+    info: true
+---
+
+# Setting-up HiClaSSE
+
+The HiClaSSE model is implemented using the diversitree package framework. To reproduce the examples, you will most likely need to compile the C code for HiClaSSE on your computer yourself. The instruction below works on Mac.
+
+1.  Compile the `hiclasse_c.c` file located in the `R/hiclasse/src` directory by running this command in your terminal: `R CMD SHLIB hiclasse_c.c`
+
+2.  Next, copy the two files `hiclasse_c.o` and `hiclasse_c.so` to the `R/hiclasse/` folder. Replace the existing files if necessary.
+
+Now you can execute the provided R examples, and they should work.

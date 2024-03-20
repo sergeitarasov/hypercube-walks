@@ -1,0 +1,217 @@
+---
+#title: "Hypercube Walks"
+author: "Sergei Tarasov"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+params:
+  output_dir: "/output"
+---
+
+
+
+
+
+```{r, setup,  include=FALSE}
+library(DT)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(here)
+knitr::opts_knit$set(root.dir = here::here(), cache = TRUE)
+```
+
+```{r message=FALSE}
+
+source('R/dependencies.R')
+source('R/utils.R')
+
+```
+
+# Construct Hypercube
+
+```{r}
+Q <- initQ(c(0,1), c(1), diag.as = 0)
+Q
+Qj <-  amaSMM(Q, Q, Q, Q, Q, Q, Q, Q, Q, Q, controlling.state = NULL)
+nrow(Qj)
+```
+
+# Plot as grpah
+
+```{r}
+# Create graph object
+G <- graph.adjacency(Qj, mode = "undirected")
+# plot(G, 
+#      vertex.size = 5, 
+#      edge.width = 2,
+#      vertex.label = NA,
+#      edge.color = "gray")
+```
+
+
+# Remove states randomly (does not produce rate variation)
+
+```{r}
+# we leave the first state, and sample states to remove
+# s2remove=sample_states(total=1024, 400)
+# Qr <- Qj[-s2remove,-s2remove]
+# nrow(Qr)
+```
+
+# Select states NON-randomly (this does produce asymmetric variation)
+
+```{r}
+#--- mutate
+initial_string='0000000000'
+selected_states <- c()
+# number of replications
+for (i in 1:1){
+  # number of generations per replication
+  x <- mutate_binary_string(initial_string, generations=100)
+  selected_states <- c(x, selected_states)
+}
+selected_states <- unique(selected_states)
+length(selected_states)
+idx <- match(selected_states, rownames(Qj))
+Qr <- Qj[idx,idx]
+nrow(Qr)
+```
+
+# Mutate strings as unique
+
+```{r}
+# initial_string <- '0000000000'
+# selected_states <- mutate_unique_binary_string(initial_string, generations=100)
+# selected_states <- unique(selected_states)
+# length(selected_states)
+# idx <- match(selected_states, rownames(Qj))
+# Qr <- Qj[idx,idx]
+# nrow(Qr)
+```
+
+
+# Make graph and get numbe of connected components
+
+```{r}
+Gr <- graph.adjacency(Qr, mode = "undirected")
+# Calculate connected components
+comp <- components(Gr)
+comp$no
+```
+
+
+# Plot graph (=state connectivity) 
+
+```{r}
+
+plot(Gr, 
+     vertex.size = 5, 
+     edge.width = 2,
+     vertex.label = NA,
+     edge.color = "gray")
+
+```
+# Make rate matrix that is scaled to have wating time for each state = 1
+
+```{r}
+Qscl <- adj2Q(Qr) 
+head(diag(Qscl))
+```
+
+# Calculate approximate rates for each binary character (based on lumpability property)
+
+```{r}
+get_lumpQrates_all(Qscl, nchar=10)
+```
+
+# Simulate histories
+
+## Simulate tree
+
+```{r}
+tree<-pbtree(n=100, scale=100, b=1, d=0)
+#plot(tree)
+
+#saveRDS(tree, 'data/tree.rds')
+```
+
+## Create Q by scaling rate
+
+```{r}
+Qsim=Qscl*.1
+diag(Qsim) %>% head
+
+```
+
+
+
+## Make history
+
+```{r}
+hist <- sim.history(tree, Qsim, nsim=1, anc='0000000000')
+plot(hist)
+
+#saveRDS(hist, 'data/hist.rds')
+```
+
+## Convert the complex char to binaries
+
+```{r}
+#hist$tip.label
+#hist$states
+tb <- convert_to_binary_chars(hist$states)
+tb
+
+#saveRDS(tb, 'data/tb.rds')
+```
+## Make null history
+
+```{r}
+Qscl0 <- adj2Q(Qj) 
+#head(diag(Qscl0 ))
+Qsim0 <- Qscl0 *0.1
+head(diag(Qsim0))
+hist0 <- sim.history(tree, Qsim0, nsim=1, anc='0000000000')
+plot(hist0)
+tb0 <- convert_to_binary_chars(hist0$states)
+```
+
+# ML inference
+
+## Read data
+
+```{r}
+tree <- readRDS('data/tree.rds')
+tb <- readRDS('data/tb.rds')
+```
+
+
+## make Qs
+
+```{r}
+
+Qsym <- initQ(c(0,1), c(1), diag.as = NA)
+Qas <- initQ(c(0,1), c(1,2), diag.as = NA)
+
+```
+
+
+## Inference
+```{r}
+trait <- cbind(rownames(tb), tb[,3])
+res.sym <- rayDISC(tree, trait, rate.mat=Qsym, node.states="none",  model="ARD", root.p="maddfitz")
+res.as <- rayDISC(tree, trait, rate.mat=Qas, node.states="none",  model="ARD", root.p="maddfitz")
+```
+
+## AIC
+
+```{r}
+res.sym$AIC
+res.as$AIC
+```
+
+
+
+
